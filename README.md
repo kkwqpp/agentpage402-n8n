@@ -25,12 +25,22 @@ quote. Browser-editor and n8n Cloud tests are not claimed. See
 ## Source and import links
 
 - [Portable workflow JSON](agentpage402-review.json) — download this file for import.
+- [Sanitized native n8n export](exports/AgentPage402%20%E2%80%94%20unsigned%20quote%20and%20manual%20audit%20review.json)
+  — the same workflow, exported from the verified isolated n8n 2.44.4 instance
+  for directories that require native export provenance.
 - [Code-node sources](nodes/), [workflow builder](build-workflow.mjs), and
   [fictional before/after fixtures](fixtures/).
 - Repository: [kkwqpp/agentpage402-n8n](https://github.com/kkwqpp/agentpage402-n8n).
 
 The workflow contains its Code-node sources inline, so importing the JSON does
 not require cloning the repository or installing its development tools.
+
+The native export was produced with `n8n export:workflow --id=... --output=... --pretty`
+after the real import/execution checks. [prepare-export.mjs](prepare-export.mjs)
+removes instance metadata only and refuses an export whose name, active flag,
+nodes, connections, settings, pin data or tags differ from the reviewed portable
+workflow. The source was generated from this repository, then imported, executed
+and exported by n8n; it was not authored manually in the graphical editor.
 
 ## Import and get a free quote
 

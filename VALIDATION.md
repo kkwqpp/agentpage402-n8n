@@ -56,6 +56,23 @@ commands. Every run uses a new ignored `.testnet/n8n-validation-*` folder; it
 never loads an existing n8n database or wallet environment. A supplied CLI path
 reuses software only, not its state.
 
+## Native export for directory submission
+
+On October 21, 2026 UTC, the standalone package ran n8n 2.44.4
+`export:workflow --id=ap402quote20261020 --output=... --pretty` against its own
+isolated verification database. The command exited 0 and exported exactly one
+inactive workflow. `prepare-export.mjs` retained only the seven portable fields
+already present in the reviewed source: name, active, nodes, connections,
+settings, pinData and tags. All seven were deeply equal to the existing portable
+JSON. Instance IDs, timestamps, sharing/version information and other database
+metadata were removed; the executable graph was not changed.
+
+The resulting file in `exports/` is a sanitized native export, not a separate
+implementation. The full offline package suite now passes **11/11**, including
+its graph/metadata equivalence check. Prior runtime results above remain scoped
+to the identical graph. No GUI import, new payment test or customer outcome is
+inferred from this export.
+
 ## Coverage limits
 
 The browser editor, clicking its download button, n8n Cloud, other n8n versions,

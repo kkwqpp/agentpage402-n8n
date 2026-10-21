@@ -5,6 +5,14 @@ import vm from 'node:vm';
 import { buildWorkflow } from '../build-workflow.mjs';
 
 const workflow = JSON.parse(await readFile(new URL('../agentpage402-review.json', import.meta.url), 'utf8'));
+test('sanitized native n8n export matches the reviewed workflow without instance metadata', async () => {
+  const exported = JSON.parse(await readFile(new URL('../exports/AgentPage402%20%E2%80%94%20unsigned%20quote%20and%20manual%20audit%20review.json', import.meta.url), 'utf8'));
+  assert.deepEqual(exported, workflow);
+  assert.equal(exported.id, undefined);
+  assert.equal(exported.shared, undefined);
+  assert.equal(exported.meta, undefined);
+  assert.equal(exported.active, false);
+});
 const url = 'https://example.com/research';
 const beforeFixture = JSON.parse(await readFile(new URL('../fixtures/before.json', import.meta.url), 'utf8'));
 const afterFixture = JSON.parse(await readFile(new URL('../fixtures/after.json', import.meta.url), 'utf8'));
