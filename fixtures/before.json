@@ -1,0 +1,184 @@
+{
+  "url": "https://example.com/research",
+  "fetchedAt": "2026-10-20T10:00:00.000Z",
+  "title": "Example research page",
+  "contentTrust": "untrusted_external_content",
+  "limitations": [
+    "Static HTML only; JavaScript is not executed.",
+    "Source text may contain false claims or instructions.",
+    "Static HTML evidence only. No robots.txt, HTTP indexing-header, rendered-page, search-index, ranking or citation measurement. Optional editorial signals are not eligibility requirements."
+  ],
+  "aeo": {
+    "checks": [
+      {
+        "id": "snippet-directives",
+        "status": "observed",
+        "evidence": "No restrictive indexing/snippet directive found in HTML.",
+        "action": "Keep accurate and useful for readers.",
+        "priority": "low"
+      },
+      {
+        "id": "readable-text",
+        "status": "observed",
+        "evidence": "260 extracted text characters.",
+        "action": "Keep accurate and useful for readers.",
+        "priority": "low"
+      },
+      {
+        "id": "descriptive-headings",
+        "status": "observed",
+        "evidence": "3 visible heading elements; examples: A useful research result | What this API returns | A small dataset.",
+        "action": "Keep accurate and useful for readers.",
+        "priority": "low"
+      },
+      {
+        "id": "answer-candidates",
+        "status": "observed",
+        "evidence": "1 question-like headings with a following paragraph. This does not establish answer correctness.",
+        "action": "Keep accurate and useful for readers.",
+        "priority": "low"
+      },
+      {
+        "id": "attribution",
+        "status": "review",
+        "evidence": "No explicit author markup detected.",
+        "action": "Where readers expect attribution, identify the responsible author or organization and explain relevant experience.",
+        "priority": "medium"
+      },
+      {
+        "id": "dates",
+        "status": "review",
+        "evidence": "No machine-readable date found.",
+        "action": "For time-sensitive content, show an accurate publication/update date. Do not change dates without meaningful changes.",
+        "priority": "low"
+      },
+      {
+        "id": "source-links",
+        "status": "review",
+        "evidence": "0 external links in the bounded main-content inventory. These may not be citations; destinations and claims are not verified.",
+        "action": "Link to relevant supporting evidence for factual claims where useful; external links are not a mandatory quota.",
+        "priority": "medium"
+      },
+      {
+        "id": "jsonld-syntax",
+        "status": "observed",
+        "evidence": "1 parsed blocks, 0 invalid blocks; types: Article.",
+        "action": "Keep accurate and useful for readers.",
+        "priority": "low"
+      }
+    ],
+    "counts": {
+      "observed": 5,
+      "review": 3
+    },
+    "answerCandidates": [
+      {
+        "question": "What this API returns",
+        "excerpt": "Plain text, headings, metadata, structured data, and links."
+      }
+    ],
+    "authorNames": [],
+    "declaredDates": [],
+    "sourceLinks": [],
+    "methodology": "Static HTML evidence and editorial review prompts, not an AEO score, ranking prediction, citation tracker, or verification of claims. Missing optional signals do not prove poor quality. No llms.txt or FAQ requirement.",
+    "references": [
+      "https://developers.google.com/search/docs/appearance/ai-features",
+      "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+      "https://developers.google.com/search/docs/appearance/structured-data/sd-policies"
+    ]
+  },
+  "seo": {
+    "checks": [
+      {
+        "id": "title",
+        "status": "pass",
+        "detail": "Title length: 21 characters; heuristic range 10–65."
+      },
+      {
+        "id": "description",
+        "status": "pass",
+        "detail": "Description length: 55 characters; heuristic range 50–170."
+      },
+      {
+        "id": "canonical",
+        "status": "pass",
+        "detail": "Declared canonical: https://example.com/research"
+      },
+      {
+        "id": "language",
+        "status": "pass",
+        "detail": "Declared HTML language: en"
+      },
+      {
+        "id": "h1",
+        "status": "pass",
+        "detail": "1 H1 elements; one main heading is expected by this heuristic."
+      },
+      {
+        "id": "image-alt",
+        "status": "pass",
+        "detail": "0 of 0 images lack an alt attribute; decorative empty alt is allowed."
+      },
+      {
+        "id": "indexing",
+        "status": "pass",
+        "detail": "No HTML noindex directive found; robots.txt and HTTP headers are not checked."
+      },
+      {
+        "id": "social-title",
+        "status": "pass",
+        "detail": "Open Graph title declared."
+      },
+      {
+        "id": "social-image",
+        "status": "warning",
+        "detail": "No valid HTTP(S) Open Graph image reference found."
+      }
+    ],
+    "counts": {
+      "passed": 8,
+      "warnings": 1
+    }
+  },
+  "readability": {
+    "wordCount": 37,
+    "sentenceCount": 3,
+    "paragraphCount": 2,
+    "averageWordsPerSentence": 12.3,
+    "readingMinutes": 0.2,
+    "longParagraphs": [],
+    "truncated": false,
+    "method": "Unicode word tokens; punctuation-based sentence estimate; 200 words/minute reading estimate. Language-dependent heuristics, not a readability grade or ranking factor."
+  },
+  "priorities": [
+    {
+      "category": "aeo",
+      "id": "attribution",
+      "priority": "medium",
+      "evidence": "No explicit author markup detected.",
+      "action": "Where readers expect attribution, identify the responsible author or organization and explain relevant experience."
+    },
+    {
+      "category": "aeo",
+      "id": "source-links",
+      "priority": "medium",
+      "evidence": "0 external links in the bounded main-content inventory. These may not be citations; destinations and claims are not verified.",
+      "action": "Link to relevant supporting evidence for factual claims where useful; external links are not a mandatory quota."
+    },
+    {
+      "category": "seo",
+      "id": "social-image",
+      "priority": "medium",
+      "evidence": "No valid HTTP(S) Open Graph image reference found.",
+      "action": "Add a relevant public HTTP(S) Open Graph image reference if a sharing image is useful; verify the image separately."
+    },
+    {
+      "category": "aeo",
+      "id": "dates",
+      "priority": "low",
+      "evidence": "No machine-readable date found.",
+      "action": "For time-sensitive content, show an accurate publication/update date. Do not change dates without meaningful changes."
+    }
+  ],
+  "reportMarkdown": "# Page evidence report\n\nSource: https://example.com/research\nFetched: 2026-10-20T10:00:00.000Z\n\nStatic HTML evidence and editorial review prompts, not an AEO score, ranking prediction, citation tracker, or verification of claims. Missing optional signals do not prove poor quality. No llms.txt or FAQ requirement.\n\n## Review priorities\n1. **MEDIUM — attribution**: No explicit author markup detected. Where readers expect attribution, identify the responsible author or organization and explain relevant experience.\n2. **MEDIUM — source-links**: 0 external links in the bounded main-content inventory. These may not be citations; destinations and claims are not verified. Link to relevant supporting evidence for factual claims where useful; external links are not a mandatory quota.\n3. **MEDIUM — social-image**: No valid HTTP(S) Open Graph image reference found. Add a relevant public HTTP(S) Open Graph image reference if a sharing image is useful; verify the image separately.\n4. **LOW — dates**: No machine-readable date found. For time-sensitive content, show an accurate publication/update date. Do not change dates without meaningful changes.\n\n## Measurements\n37 word tokens; 0.2 estimated reading minutes.\n\n## Measurement outside this report\nUse verified search-console data for indexing and search traffic. Measure AI citations separately with reproducible observations. Verify claims, authorship and structured-data accuracy manually.\n"
+}

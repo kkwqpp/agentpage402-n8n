@@ -1,0 +1,16 @@
+{
+  "name": "agentpage402-n8n",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manual unsigned x402 quote and static page-audit review workflow for n8n",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node build-workflow.mjs",
+    "test": "node --test test/workflow.test.mjs",
+    "test:runtime": "node test/runtime.mjs"
+  }
+}

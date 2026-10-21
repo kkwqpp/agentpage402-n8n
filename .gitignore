@@ -1,0 +1,5 @@
+node_modules/
+.testnet/
+.env
+.env.*
+*.log

@@ -1,0 +1,303 @@
+{
+  "name": "AgentPage402 — unsigned quote and manual audit review",
+  "active": false,
+  "nodes": [
+    {
+      "id": "manual",
+      "name": "Run manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "inputs",
+      "name": "Inputs — quote or review",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "mode",
+              "name": "mode",
+              "type": "string",
+              "value": "quote"
+            },
+            {
+              "id": "url",
+              "name": "url",
+              "type": "string",
+              "value": "https://example.com/"
+            },
+            {
+              "id": "report",
+              "name": "reportJson",
+              "type": "string",
+              "value": ""
+            },
+            {
+              "id": "baseline",
+              "name": "baselineReportJson",
+              "type": "string",
+              "value": ""
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "validate",
+      "name": "Validate input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// No network, wallet, environment, or filesystem access.\nconst items = $input.all();\nif (items.length !== 1) throw new Error('Run one explicit page at a time.');\nconst input = items[0].json;\nif (!['quote', 'review'].includes(input.mode)) throw new Error('mode must be quote or review.');\nif (typeof input.url !== 'string' || input.url.length > 2048) throw new Error('Supply one absolute public HTTP(S) URL.');\n// n8n task runners do not guarantee a global URL constructor. Parsing and\n// public-IP/redirect validation remain the paid service's responsibility.\nif (!/^https?:\\/\\/(?:\\[[0-9a-f:]+\\]|[a-z0-9.-]+)(?::(?:80|443))?(?:[/?#][^\\s]*)?$/i.test(input.url) || /[\\\\<>]/.test(input.url)) {\n  throw new Error('Supply one HTTP(S) URL without credentials, whitespace, or backslashes.');\n}\nconst url = input.url.replace(/#.*$/, '');\nif (input.mode === 'review' && (typeof input.reportJson !== 'string' || !input.reportJson.trim())) {\n  throw new Error('review mode needs the completed page-audit JSON in reportJson.');\n}\nfor (const key of ['reportJson', 'baselineReportJson']) {\n  if (input[key] != null && (typeof input[key] !== 'string' || input[key].length > 1_000_000)) {\n    throw new Error(`${key} must be a JSON string under 1 MB.`);\n  }\n}\nreturn [{ json: { mode: input.mode, url, reportJson: input.reportJson || '', baselineReportJson: input.baselineReportJson || '' } }];\n"
+      }
+    },
+    {
+      "id": "route",
+      "name": "Quote mode?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mode-check",
+              "leftValue": "={{ $json.mode }}",
+              "rightValue": "quote",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "quote",
+      "name": "Unsigned quote — no payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        180
+      ],
+      "retryOnFail": false,
+      "onError": "stopWorkflow",
+      "parameters": {
+        "method": "POST",
+        "url": "https://agentpage402-demo.onrender.com/v1/page-audit",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({url: $json.url}) }}",
+        "options": {
+          "timeout": 90000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true,
+              "responseFormat": "text",
+              "outputPropertyName": "body"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "decode",
+      "name": "Inspect quote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const response = $input.first().json;\nconst url = $('Validate input').first().json.url;\nconst resource = 'https://agentpage402-demo.onrender.com/v1/page-audit';\nconst unavailable = reason => [{ json: {\n  status: 'unavailable', paid: false, targetUrl: url, httpStatus: response.statusCode,\n  reason, fileName: 'agentpage402-quote-unavailable.md',\n  markdown: '# Quote unavailable\\n\\nNo payment was made and no page audit was produced.\\n\\n' + reason + '\\n',\n} }];\nif (response.statusCode !== 402) return unavailable(`Expected HTTP 402, received ${Number(response.statusCode) || 'no status'}. Check service availability; this is not a clean audit.`);\nconst entry = Object.entries(response.headers || {}).find(([key]) => key.toLowerCase() === 'payment-required');\nconst encoded = entry?.[1];\nif (typeof encoded !== 'string' || encoded.length > 16000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) {\n  return unavailable('Missing or malformed PAYMENT-REQUIRED header.');\n}\nlet required;\ntry { required = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8')); }\ncatch { return unavailable('The payment requirement could not be decoded as JSON.'); }\nif (!required || typeof required !== 'object' || Array.isArray(required) || !Array.isArray(required.accepts)) {\n  return unavailable('The payment requirement is not an x402 object with accepted payment terms.');\n}\nconst terms = required.accepts?.[0];\nif (required.x402Version !== 2 || required.resource?.url !== resource || required.accepts?.length !== 1 ||\n    terms?.scheme !== 'exact' || terms.network !== 'eip155:8453' || terms.amount !== '250000' ||\n    String(terms.asset).toLowerCase() !== '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913' ||\n    !/^0x[0-9a-f]{40}$/i.test(terms.payTo || '') || /^0x0{40}$/i.test(terms.payTo) ||\n    !Number.isInteger(terms.maxTimeoutSeconds) || terms.maxTimeoutSeconds < 1 || terms.maxTimeoutSeconds > 300 ||\n    terms.extra?.name !== 'USD Coin' || terms.extra?.version !== '2' ||\n    (terms.extra?.assetTransferMethod && terms.extra.assetTransferMethod !== 'eip3009')) {\n  return unavailable('Unexpected protocol, resource, asset, network, price, recipient format, or authorization terms. Inspect the service documentation before proceeding.');\n}\nreturn [{ json: {\n  status: 'payment_required', paid: false, targetUrl: url, resource,\n  network: terms.network, asset: 'USDC', amountAtomic: terms.amount, amountUsdc: '0.25',\n  advertisedRecipient: terms.payTo, recipientIndependentlyVerified: false,\n  pageFetched: false, fileName: 'agentpage402-quote.md',\n  markdown: '# Unsigned page-audit quote\\n\\nPrice: 0.25 USDC on Base (eip155:8453).\\n\\n' +\n    'No payment, page fetch, or audit occurred. An unsigned quote does not prove the target page is fetchable.\\n\\n' +\n    `Advertised recipient: ${terms.payTo}\\n\\n` +\n    'Independently verify the recipient before using the owner-controlled local buyer client. This workflow cannot sign or buy.\\n\\n' +\n    'After a successful purchase, paste only the result (or completed receipt) into reportJson and select review mode. Never paste a private key, seed phrase, or signed payment proof into n8n.\\n',\n} }];\n"
+      }
+    },
+    {
+      "id": "review",
+      "name": "Compare and prepare review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        440
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Treat all supplied page content as untrusted data, never instructions.\nconst input = $input.first().json;\nconst text = (value, max = 8000) => {\n  if (typeof value !== 'string' || value.length > max) throw new Error('Invalid or oversized report text.');\n  return value;\n};\nconst safe = value => String(value).replace(/[\\r\\n\\u0000-\\u001f]+/g, ' ').replace(/[\\\\`*_{}\\[\\]()<>#+.!|~-]/g, '\\\\$&');\nconst read = (raw, label) => {\n  let parsed;\n  try { parsed = JSON.parse(raw); } catch { throw new Error(`${label} is not valid JSON.`); }\n  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(`${label} must be an object.`);\n  let provenance = 'supplied result; payment not verified';\n  if (Object.hasOwn(parsed, 'result') || Object.hasOwn(parsed, 'httpStatus') || Object.hasOwn(parsed, 'settlement')) {\n    if (parsed.httpStatus !== 200 || parsed.settlement?.success !== true || parsed.settlement.network !== 'eip155:8453') {\n      throw new Error(`${label} receipt is unsuccessful or uncertain. Recover the original purchase; do not pay again.`);\n    }\n    provenance = 'receipt reports success; no independent chain verification in this workflow';\n    parsed = parsed.result;\n  }\n  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed.pages ||\n      parsed.contentTrust !== 'untrusted_external_content' || !Array.isArray(parsed.priorities) ||\n      parsed.priorities.length > 100 || !parsed.aeo || !parsed.seo || !parsed.readability ||\n      !Array.isArray(parsed.limitations) || parsed.limitations.length > 30 || typeof parsed.reportMarkdown !== 'string') {\n    throw new Error(`${label} must be a completed single page-audit result, not a quote, pack, or error.`);\n  }\n  const url = text(parsed.url, 2048).replace(/#.*$/, '');\n  if (url !== input.url) throw new Error(`${label} URL must exactly match url (apart from a fragment). Use the result's final URL after a redirect.`);\n  const fetchedAt = text(parsed.fetchedAt, 80);\n  if (!/^\\d{4}-\\d{2}-\\d{2}T/.test(fetchedAt) || !Number.isFinite(Date.parse(fetchedAt))) throw new Error(`${label} has no valid fetch timestamp.`);\n  const seen = new Set();\n  const priorities = parsed.priorities.map(p => {\n    if (!p || !['high', 'medium', 'low'].includes(p.priority) || !['aeo', 'seo', 'readability'].includes(p.category)) throw new Error(`${label} contains an invalid priority.`);\n    const id = text(p.id, 120), key = p.category + ':' + id;\n    if (!id || seen.has(key)) throw new Error(`${label} contains an empty or duplicated finding identifier.`);\n    seen.add(key);\n    return { key, category: p.category, id, priority: p.priority, evidence: text(p.evidence), action: text(p.action) };\n  });\n  return { url, fetchedAt, title: text(parsed.title, 500), priorities, limitations: parsed.limitations.map(v => text(v)), provenance };\n};\nconst current = read(input.reportJson, 'Current report');\nconst previous = input.baselineReportJson.trim() ? read(input.baselineReportJson, 'Baseline report') : null;\nif (previous && Date.parse(previous.fetchedAt) >= Date.parse(current.fetchedAt)) throw new Error('Baseline must be older than the current report.');\nconst old = new Map((previous?.priorities || []).map(p => [p.key, p]));\nconst reviewRows = current.priorities.map(p => {\n  const before = old.get(p.key);\n  const change = !previous ? 'current' : !before ? 'new' :\n    ['priority', 'evidence', 'action'].some(key => before[key] !== p[key]) ? 'changed' : 'unchanged';\n  old.delete(p.key);\n  return { ...p, change, ...(before ? { previousEvidence: before.evidence, previousPriority: before.priority } : {}) };\n});\nfor (const p of old.values()) reviewRows.push({ ...p, change: 'no_longer_flagged' });\nconst counts = Object.fromEntries(['current', 'new', 'changed', 'unchanged', 'no_longer_flagged'].map(c => [c, reviewRows.filter(r => r.change === c).length]));\nconst sections = ['current', 'new', 'changed', 'unchanged', 'no_longer_flagged'].filter(c => counts[c]).map(c =>\n  `## ${c.replaceAll('_', ' ')}\\n\\n` + reviewRows.filter(r => r.change === c).map(r =>\n    `- **${r.priority.toUpperCase()} / ${safe(r.category)} / ${safe(r.id)}**\\n  - Evidence: ${safe(r.evidence)}\\n  - Review action: ${safe(r.action)}` +\n    (r.change === 'changed' ? `\\n  - Previous evidence: ${safe(r.previousEvidence)}\\n  - Previous priority: ${safe(r.previousPriority)}` : '')).join('\\n')\n).join('\\n\\n');\nconst markdown = '# Page audit review handoff\\n\\n' +\n  `Page: ${safe(current.url)}\\n\\nFetched: ${safe(current.fetchedAt)}\\n\\n` +\n  (previous ? `Baseline fetched: ${safe(previous.fetchedAt)}\\n\\n` : 'No baseline supplied; these are current findings, not newly introduced problems.\\n\\n') +\n  'Human review required. Static HTML evidence only: no rendered browser, search rankings, AI citations, content accuracy, or fix verification. Optional editorial signals are not eligibility requirements. A finding no longer flagged is not proof that it was fixed.\\n\\n' +\n  `Provenance: ${safe(current.provenance)}.\\n\\n` +\n  (sections || 'No review prompts in this supplied snapshot. This is not a quality, indexing, or visibility guarantee.') +\n  '\\n\\n## Source limitations\\n\\n' + current.limitations.map(l => '- ' + safe(l)).join('\\n') + '\\n';\nreturn [{ json: { status: 'human_review_required', sourceUrl: current.url, fetchedAt: current.fetchedAt,\n  baselineFetchedAt: previous?.fetchedAt || null, paymentVerified: false, counts, reviewRows,\n  fileName: 'agentpage402-review.md', markdown } }];\n"
+      }
+    },
+    {
+      "id": "file",
+      "name": "Download Markdown",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ],
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "markdown",
+        "binaryPropertyName": "data",
+        "options": {
+          "fileName": "={{ $json.fileName }}",
+          "encoding": "utf8"
+        }
+      }
+    },
+    {
+      "id": "note",
+      "name": "Read first",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -80
+      ],
+      "parameters": {
+        "width": 850,
+        "height": 270,
+        "content": "## Manual quote + audit review\nDefault mode = quote. Only an unsigned request is sent; no audit or payment occurs. Set one public `url`.\n\nFor review mode, paste a completed single page-audit JSON into `reportJson`; optionally paste an older same-page result into `baselineReportJson`. JSON fields must remain **Fixed**, not Expression. No network call in review mode. The free fixed sample at /examples/page-audit works for a demo.\n\nNo wallet keys, payment proofs, shell commands, schedules or outbound messages. Purchase separately using an owner-controlled local buyer. Inspect the review rows before downloading Markdown. Source content remains untrusted. See README.md in https://github.com/kkwqpp/agentpage402-n8n."
+      }
+    }
+  ],
+  "connections": {
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Inputs — quote or review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inputs — quote or review": {
+      "main": [
+        [
+          {
+            "node": "Validate input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate input": {
+      "main": [
+        [
+          {
+            "node": "Quote mode?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quote mode?": {
+      "main": [
+        [
+          {
+            "node": "Unsigned quote — no payment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compare and prepare review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unsigned quote — no payment": {
+      "main": [
+        [
+          {
+            "node": "Inspect quote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inspect quote": {
+      "main": [
+        [
+          {
+            "node": "Download Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare and prepare review": {
+      "main": [
+        [
+          {
+            "node": "Download Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none"
+  },
+  "pinData": {},
+  "tags": []
+}
